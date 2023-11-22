@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src *; script-src * 'unsafe-inline'; style-src * 'unsafe-inline';">
+
+  <title>Soket Programlama</title>
+  <style>
+    .container {
+      display: flex;
+    }
+    .mouseData, .keyboardData {
+      flex: 1;
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin: 5px;
+      height: 200px;
+      overflow-y: auto;
+    }
+    .divider {
+      border-left: 1px solid #ccc;
+      height: 200px;
+      margin: 0 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Soket Programlama Ödevi</h1>
+  <h3>Bilgisayar Ağları Dersi - Melih Arık</h3>
+  <div class="container">
+    <div class="mouseData">
+      <h2>Fare Verileri</h2>
+      <ul id="mouseList"></ul>
+    </div>
+    <div class="divider"></div>
+    <div class="keyboardData">
+      <h2>Klavye Verileri</h2>
+      <ul id="keyboardList"></ul>
+    </div>
+  </div>
+  
+
+  <input type="file" accept="image/*" id="fileInput">
+  <button id="sendBtn">Gönder</button>
+
+  <div>
+    <h2>Yüklenen Görüntüler</h2>
+    <div id="uploadedImages"></div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+  <script>
+    const clientId = Math.random().toString(36).substr(2, 9);
+
+    const socket = io('http://YOUR_SERVER_IP:3000'); // Sunucuya bağlan
+
+    // Fare hareketlerini dinle ve sunucuya gönder
+    document.addEventListener('mousemove', (event) => {
+      const mouseData = {
+        x: event.clientX,
+        y: event.clientY,
+        clientId: clientId
+      };
+      socket.emit('mouseMove', mouseData); // Sunucuya fare verisini gönder
+    });
+
+    // Sunucudan gelen fare verisini al ve göster
+    socket.on('mouseMove', (data) => {
+      const mouseList = document.getElementById('mouseList');
+      const listItem = document.createElement('li');
+      listItem.textContent = `(${data.clientId}): X-${data.x}, Y-${data.y}`;
+      mouseList.appendChild(listItem);
+    });
+
+    // Klavye olaylarını dinle ve sunucuya gönder
+    document.addEventListener('keydown', (event) => {
+      const keyData = {
+        key: event.key,
+      };
+      socket.emit('keyPress', keyData); // Sunucuya klavye verisini gönder
+    });
+
+    // Sunucudan gelen klavye verisini al ve göster
+    socket.on('keyPress', (data) => {
+      const keyboardList = document.getElementById('keyboardList');
+      const listItem = document.createElement('li');
+      listItem.textContent = `(${data.clientId}): ${data.key}`;
+      keyboardList.appendChild(listItem);
+    });
+
+    // Dosya yükleme işlemi
+    document.getElementById('sendBtn').addEventListener('click', () => {
+      const input = document.getElementById('fileInput');
+      const file = input.files[0];
+
+      if (file) {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = function () {
+          const fileData = reader.result;
+          socket.emit('fileUpload', { fileData }); // Sunucuya dosya verisini gönder
+        };
+        reader.onerror = function (error) {
+          console.error('Hata:', error);
+        };
+      } else {
+        alert('Lütfen bir dosya seçin.');
+      }
+    });
+
+    // Yüklenen dosyaların listelendiği alandaki div'i seçin
+    const uploadedImagesDiv = document.getElementById('uploadedImages');
+
+    // Sunucudan gelen yüklenen dosya adını al ve liste halinde göster
+    socket.on('fileUploaded', (data) => {
+      const imageElement = document.createElement('img');
+    
+
+      imageElement.src = `http://YOUR_SERVER_IP:3000/${data.filename}`; // Dosyanın uzantısını al
+
+      // Yüklenen dosyaların listelendiği alana resmi ekle
+      uploadedImagesDiv.appendChild(imageElement);
+    });
+  </script>
+</body>
+</html>
